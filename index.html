@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RaceNext Results</title>
+  <meta name="description" content="Перегляд результатів забігів RaceNext у зручному форматі">
+  <!-- Inline SVG favicon: a single orange "R" letter mark on transparent background. -->
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23F25500'/><text x='50%25' y='53%25' dominant-baseline='middle' text-anchor='middle' font-family='-apple-system,Helvetica,Arial,sans-serif' font-weight='800' font-size='40' fill='white'>R</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="#/" class="brand" aria-label="RaceNext Results" id="brandLabel">
+      <!-- Stylized text wordmark — intentionally not the official RaceNext
+           logo, to avoid any trademark/IP concerns about hot-linking or
+           reproducing the official mark. -->
+      <span class="brand-name">Race<span class="brand-accent">Next</span></span>
+      <span class="brand-tag">Results</span>
+    </a>
+
+    <!-- Stacked navigation block: parent breadcrumbs above, current page
+         title below. Both stay sticky with the topbar so the user always
+         sees where they are without consuming page real estate twice. -->
+    <div class="topbar-nav">
+      <nav class="topbar-crumbs" id="crumbs"></nav>
+      <div class="topbar-title" id="pageTitle"></div>
+    </div>
+
+    <div class="topbar-actions">
+      <div id="langPicker" class="lang-picker" role="group" aria-label="Language"></div>
+
+      <a id="siteLink" href="https://racenext.app" class="iconbtn" target="_blank" rel="noopener" title="racenext.app">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+        </svg>
+      </a>
+
+      <button id="refreshBtn" class="iconbtn" title="Оновити">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+      </button>
+
+      <button id="settingsBtn" class="iconbtn" title="Налаштування">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.36.18.66.49.84.84.18.35.27.74.27 1.16V11a2 2 0 1 1 0 4h-.09c-.42 0-.81.09-1.16.27z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app" class="container">
+    <div class="loading"><div class="spinner"></div><div>Завантаження…</div></div>
+  </main>
+
+  <dialog id="settingsDlg">
+    <form method="dialog" class="settings">
+      <h3 id="dlgTitle">Налаштування</h3>
+      <label>
+        <span id="proxyLabel">Свій CORS-проксі</span>
+        <input type="url" id="proxyInput" placeholder="https://my-cors.workers.dev/?url=">
+        <small id="proxyHint"></small>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="forceProxy">
+        <span id="forceProxyLabel"></span>
+      </label>
+      <label>
+        <span id="tokenLabel">Bearer-токен</span>
+        <input type="text" id="tokenInput" placeholder="eyJhbGciOi…">
+        <small id="tokenHint"></small>
+      </label>
+      <div class="dlg-actions">
+        <button type="button" id="settingsClear" class="ghost">Скинути</button>
+        <button value="save" id="settingsSave" class="primary">Зберегти</button>
+      </div>
+    </form>
+  </dialog>
+
+  <footer class="footer" id="footer"></footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
