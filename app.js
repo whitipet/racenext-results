@@ -72,7 +72,7 @@ const UI = {
     filterGender: "Стать",
     filterCategory: "Категорія",
     filterMen: "Чоловіки", filterWomen: "Жінки",
-    columnRank: "Місце", columnRankCat: "В категорії",
+    columnRank: "Місце", columnRankCat: "В категорії", columnRankCatShort: "В кат.",
     columnBib: "№", columnName: "Учасник",
     columnGender: "Стать", columnCategory: "Категорія", columnClub: "Клуб / місто",
     columnTime: "Час", columnPace: "Темп",
@@ -124,7 +124,7 @@ const UI = {
     filterGender: "Gender",
     filterCategory: "Category",
     filterMen: "Men", filterWomen: "Women",
-    columnRank: "Place", columnRankCat: "Category",
+    columnRank: "Place", columnRankCat: "Category", columnRankCatShort: "Cat.",
     columnBib: "Bib", columnName: "Participant",
     columnGender: "Gender", columnCategory: "Cat.", columnClub: "Club / city",
     columnTime: "Time", columnPace: "Pace",
@@ -1046,7 +1046,8 @@ async function viewRace(rid, opts = {}) {
     const colsAll = [
       { key: "rank", label: t("columnRank"), num: true,
         sortGetter: r => parseFloat(r.rank) || Number.MAX_SAFE_INTEGER },
-      { key: "rank_category", label: t("columnRankCat"), num: true,
+      { key: "rank_category", label: t("columnRankCat"), labelShort: t("columnRankCatShort"),
+        num: true,
         sortGetter: r => parseFloat(r.rank_category) || Number.MAX_SAFE_INTEGER,
         when: () => hasCatPlace },
       { key: "bib", label: t("columnBib"), num: true,
@@ -1058,7 +1059,8 @@ async function viewRace(rid, opts = {}) {
       { key: "club", label: t("columnClub") },
       { key: "time", label: t("columnTime"), num: true,
         sortGetter: r => { const s = timeToSec(r.time); return isNaN(s) ? Number.MAX_SAFE_INTEGER : s; } },
-      { key: "pace", label: t("columnPace") },
+      { key: "pace", label: t("columnPace"), num: true,
+        sortGetter: r => { const s = timeToSec(r.pace); return isNaN(s) ? Number.MAX_SAFE_INTEGER : s; } },
     ];
     const cols = colsAll.filter(c => {
       if (c.when && !c.when()) return false;
@@ -1096,7 +1098,12 @@ async function viewRace(rid, opts = {}) {
           <thead>
             <tr>
               ${hasSplits ? `<th class="splits-col" aria-hidden="true"></th>` : ""}
-              ${cols.map(c => `<th data-key="${c.key}" class="${c.num ? "num" : ""}">${escHtml(c.label)}</th>`).join("")}
+              ${cols.map(c => {
+              const lbl = c.labelShort
+                ? `<span class="col-full">${escHtml(c.label)}</span><span class="col-short">${escHtml(c.labelShort)}</span>`
+                : escHtml(c.label);
+              return `<th data-key="${c.key}" class="${c.num ? "num" : ""}">${lbl}</th>`;
+            }).join("")}
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -1128,25 +1135,29 @@ async function viewRace(rid, opts = {}) {
     }
 
     function cellRender(c, r) {
+      // data-key on each td lets CSS @media rules hide a column on small
+      // screens by toggling both the header AND the body cell, keeping the
+      // sticky header perfectly aligned with the table content.
+      const dk = `data-key="${c.key}"`;
       if (c.key === "rank") {
         const m = medal(r.rank);
-        return `<td class="num rank">${m ? `<span class="medal">${m}</span>` : ""}${escHtml(r.rank)}</td>`;
+        return `<td ${dk} class="num rank">${m ? `<span class="medal">${m}</span>` : ""}${escHtml(r.rank)}</td>`;
       }
-      if (c.key === "rank_category") return `<td class="num">${escHtml(r.rank_category)}</td>`;
+      if (c.key === "rank_category") return `<td ${dk} class="num">${escHtml(r.rank_category)}</td>`;
       if (c.key === "name") {
         const sub = r.location;
-        return `<td class="name-cell">
+        return `<td ${dk} class="name-cell">
           <div class="primary">${escHtml(r.name)}</div>
           ${sub ? `<div class="secondary">${escHtml(sub)}</div>` : ""}
         </td>`;
       }
-      if (c.key === "gender") return `<td>${escHtml(fmtGender(r.gender))}</td>`;
-      if (c.key === "time") return `<td class="num mono">${escHtml(fmtTime(r.time))}</td>`;
-      if (c.key === "pace") return `<td class="num mono">${escHtml(r.pace)}</td>`;
-      if (c.key === "club") return `<td>${escHtml(r.club)}</td>`;
-      if (c.key === "category") return `<td>${escHtml(r.category)}</td>`;
-      if (c.key === "bib") return `<td class="num">${escHtml(r.bib)}</td>`;
-      return `<td>${escHtml(r[c.key])}</td>`;
+      if (c.key === "gender") return `<td ${dk}>${escHtml(fmtGender(r.gender))}</td>`;
+      if (c.key === "time") return `<td ${dk} class="num mono">${escHtml(fmtTime(r.time))}</td>`;
+      if (c.key === "pace") return `<td ${dk} class="num mono">${escHtml(r.pace)}</td>`;
+      if (c.key === "club") return `<td ${dk}>${escHtml(r.club)}</td>`;
+      if (c.key === "category") return `<td ${dk}>${escHtml(r.category)}</td>`;
+      if (c.key === "bib") return `<td ${dk} class="num">${escHtml(r.bib)}</td>`;
+      return `<td ${dk}>${escHtml(r[c.key])}</td>`;
     }
 
     function rowRender(r, idx) {
@@ -1304,6 +1315,13 @@ function setupToolbar() {
   const brandEl = $("#brandLabel");
   if (brandEl) brandEl.setAttribute("aria-label", t("brand"));
   $("#siteLink").title = t("openSite");
+
+  // Localize the textual labels that appear in the kebab popover on
+  // narrow viewports. They stay hidden on desktop via CSS.
+  const setText = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+  setText("#siteLinkLabel", "racenext.app");
+  setText("#refreshBtnLabel", t("refresh"));
+  setText("#settingsBtnLabel", t("settings"));
   $("#refreshBtn").title = t("refresh");
   $("#settingsBtn").title = t("settings");
 
@@ -1371,6 +1389,54 @@ function setupToolbar() {
       <div class="footer-disclaimer">${escHtml(t("footerDisclaimer"))}</div>
       <div class="footer-data">${escHtml(t("footerData"))}: <a href="https://racenext.app" target="_blank" rel="noopener">racenext.app</a></div>
     `;
+  }
+
+  // Explicit close button on the settings dialog (mobile-friendly; ESC
+  // already worked but a tap target is much friendlier on touch).
+  const closeX = $("#settingsCloseX");
+  if (closeX) closeX.onclick = () => settingsDlg.close();
+
+  // Backdrop click closes the dialog. When a <dialog> is opened with
+  // showModal(), clicks on the backdrop register on the dialog element
+  // itself (its inner <form> stops the bubble).
+  if (settingsDlg && !settingsDlg.dataset.bound) {
+    settingsDlg.addEventListener("click", e => {
+      if (e.target === settingsDlg) settingsDlg.close();
+    });
+    settingsDlg.dataset.bound = "1";
+  }
+
+  // Kebab menu (only visible on narrow viewports) toggles a popover that
+  // contains lang picker / globe / refresh / settings.
+  const menuToggle = $("#menuToggle");
+  const topbar = document.querySelector(".topbar");
+  if (menuToggle && topbar && !menuToggle.dataset.bound) {
+    menuToggle.addEventListener("click", e => {
+      e.stopPropagation();
+      const open = topbar.classList.toggle("menu-open");
+      menuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("click", e => {
+      if (!topbar.classList.contains("menu-open")) return;
+      // Don't close on clicks inside the popover or on the toggle itself.
+      if (e.target.closest(".topbar-actions, .menu-toggle")) return;
+      topbar.classList.remove("menu-open");
+      menuToggle.setAttribute("aria-expanded", "false");
+    });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        topbar.classList.remove("menu-open");
+        menuToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+    // After a button inside the popover is activated, close the menu.
+    $$("#topbarActions a, #topbarActions button").forEach(b => {
+      b.addEventListener("click", () => {
+        topbar.classList.remove("menu-open");
+        menuToggle.setAttribute("aria-expanded", "false");
+      });
+    });
+    menuToggle.dataset.bound = "1";
   }
 }
 

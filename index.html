@@ -27,39 +27,67 @@
       <div class="topbar-title" id="pageTitle"></div>
     </div>
 
-    <div class="topbar-actions">
+    <div class="topbar-actions" id="topbarActions">
       <div id="langPicker" class="lang-picker" role="group" aria-label="Language"></div>
 
       <a id="siteLink" href="https://racenext.app" class="iconbtn" target="_blank" rel="noopener" title="racenext.app">
-        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+        <!-- Globe is redrawn with a larger inner circle (r=10) and
+             extended meridian arcs so its visible content fills ~92% of
+             the viewBox — comparable to the cog and refresh icons.
+             overflow="visible" lets the stroke edge breathe past the
+             viewBox without being clipped. -->
+        <svg viewBox="0 0 24 24" width="22" height="22" overflow="visible"
+             fill="none" stroke="currentColor"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M2 12h20M12 2a14 14 0 0 1 0 20M12 2a14 14 0 0 0 0 20"/>
         </svg>
+        <span class="iconbtn-label" id="siteLinkLabel">racenext.app</span>
       </a>
 
       <button id="refreshBtn" class="iconbtn" title="Оновити">
-        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="23 4 23 10 17 10"/>
           <polyline points="1 20 1 14 7 14"/>
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
         </svg>
+        <span class="iconbtn-label" id="refreshBtnLabel">Оновити</span>
       </button>
 
       <button id="settingsBtn" class="iconbtn" title="Налаштування">
-        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.36.18.66.49.84.84.18.35.27.74.27 1.16V11a2 2 0 1 1 0 4h-.09c-.42 0-.81.09-1.16.27z"/>
         </svg>
+        <span class="iconbtn-label" id="settingsBtnLabel">Налаштування</span>
       </button>
     </div>
+
+    <!-- Visible only on narrow viewports (CSS @media). Toggling the
+         .menu-open class on .topbar shows .topbar-actions as a popover
+         anchored under this button. -->
+    <button class="iconbtn menu-toggle" id="menuToggle" aria-label="Меню" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+        <circle cx="12" cy="4"  r="2.5"/>
+        <circle cx="12" cy="12" r="2.5"/>
+        <circle cx="12" cy="20" r="2.5"/>
+      </svg>
+    </button>
   </header>
 
   <main id="app" class="container">
     <div class="loading"><div class="spinner"></div><div>Завантаження…</div></div>
   </main>
 
-  <dialog id="settingsDlg">
+  <dialog id="settingsDlg" aria-labelledby="dlgTitle">
     <form method="dialog" class="settings">
+      <button type="button" class="dialog-close" id="settingsCloseX"
+              aria-label="Закрити" title="Закрити">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="6" y1="18" x2="18" y2="6"/>
+        </svg>
+      </button>
       <h3 id="dlgTitle">Налаштування</h3>
       <label>
         <span id="proxyLabel">Свій CORS-проксі</span>

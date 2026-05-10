@@ -162,6 +162,12 @@ code { font-size: 13px; }
 }
 .topbar-actions { display: flex; align-items: center; gap: 6px; }
 
+/* The 3-dots button is hidden by default; it only appears on small screens
+   where it acts as a toggle for the .topbar-actions popover. The compound
+   selector keeps it specific enough to beat .iconbtn { display: inline-flex }
+   regardless of source order. */
+.iconbtn.menu-toggle { display: none; }
+
 .iconbtn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px;
@@ -171,9 +177,27 @@ code { font-size: 13px; }
   cursor: pointer;
   transition: background .12s, border-color .12s, color .12s;
 }
-.iconbtn svg { width: 22px; height: 22px; stroke-width: 2; }
+/* Toolbar icons sit at 22px inside a 40px box (~55% — comfortable chrome
+   icon ratio). They share the same physical size; optical balance comes
+   from the SVG content itself: globe is redrawn so its visible shape
+   fills as much of the viewBox as the cog and refresh do.
+
+   `flex: 0 0 auto` is the important bit: without it, browsers can squish
+   the SVG horizontally inside the flex container when its intrinsic
+   width is computed from content rather than viewBox (we observed this
+   exact bug in Chrome — refresh rendering as 10×26 instead of 26×26). */
+.iconbtn svg {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: block;
+  stroke-width: 2;
+}
 .iconbtn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .iconbtn:active { transform: translateY(1px); }
+/* Hidden by default; revealed inside the kebab popover on phones so each
+   menu row has both an icon and a textual label. */
+.iconbtn-label { display: none; }
 
 .lang-picker {
   display: inline-flex;
@@ -297,13 +321,16 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .toolbar input[type="search"], .filters input[type="search"] {
   flex: 1 1 220px; min-width: 200px;
 }
-/* Tabular-nums + a fixed min-width keeps the count from changing the layout
-   width as the user filters rows ("100 з 937" → "1 з 937" must not push
-   neighbouring controls). */
+/* Tabular-nums + a fixed min-width keeps the count from changing the
+   layout width as the user filters rows ("100 з 937" → "1 з 937" must
+   not push neighbouring controls). The count sits at the right edge of
+   the filter row via margin-left: auto. */
 .toolbar .count, .filters .count {
   color: var(--muted); font-size: 13px; white-space: nowrap;
-  margin-left: auto; min-width: 110px; text-align: right;
   font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  min-width: 110px;
+  text-align: right;
 }
 
 .chips {
@@ -475,6 +502,9 @@ table.results th:last-child {
 }
 table.results th[aria-sort="ascending"]::after { content: " ▲"; color: var(--accent); }
 table.results th[aria-sort="descending"]::after { content: " ▼"; color: var(--accent); }
+/* By default headers use their full label; the short variant is only
+   surfaced inside the @media (max-width: 540px) block above. */
+.col-short { display: none; }
 table.results tbody tr:last-child td { border-bottom: 0; }
 table.results tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius); }
 table.results tbody tr:last-child td:last-child { border-bottom-right-radius: var(--radius); }
@@ -631,12 +661,36 @@ dialog {
   box-shadow: 0 20px 60px rgba(0,0,0,.30);
 }
 dialog::backdrop { background: rgba(0,0,0,.45); backdrop-filter: blur(2px); }
-.settings { padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
-.settings h3 { margin: 0 0 4px; }
+.settings {
+  position: relative;
+  padding: 18px 20px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.settings h3 { margin: 0 0 4px; padding-right: 32px; }
 .settings label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .settings label.check { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; }
 .settings small { color: var(--muted); }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Close X button in the top-right corner of the dialog. */
+.dialog-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.dialog-close:hover {
+  background: var(--bg-soft);
+  color: var(--fg);
+  border-color: var(--border);
+}
+.dialog-close svg { width: 20px; height: 20px; display: block; }
 
 /* ---------- footer ---------- */
 
@@ -657,25 +711,163 @@ dialog::backdrop { background: rgba(0,0,0,.45); backdrop-filter: blur(2px); }
 
 /* ---------- responsive ---------- */
 
+/* ---------- responsive ---------- */
+
+/* Tablet & smaller: tighten paddings; let the table scroll horizontally
+   inside its own wrapper so the page itself never gets a horizontal
+   scroll. The iconbtn box and icons stay the same as on desktop so the
+   globe, refresh and settings all look uniform. */
 @media (max-width: 720px) {
   .topbar { padding: 0 10px; gap: 10px; }
   .container { padding: 12px 12px 60px; }
-  .page-head h1 { font-size: 20px; }
-  table.results th, table.results td { padding: 8px 10px; }
-  .lang-picker { margin-right: 0; }
   .chips::before { display: none; }
   .brand-tag { display: none; }
-  .iconbtn { width: 36px; height: 36px; }
-  .iconbtn svg { width: 20px; height: 20px; }
   .topbar-title { font-size: 16px; }
   .topbar-title .title-meta { display: none; }
   .topbar-crumbs { font-size: 12px; }
+  table.results th, table.results td { padding: 8px 10px; }
+
+  /* Horizontal scroll inside the table wrap. Note: introducing
+     overflow-x: auto here forces overflow-y: auto in the same box (per the
+     CSS overflow shorthand rules), which would normally pin sticky <th>
+     to the wrap rather than the viewport. We compensate by switching the
+     th's sticky offset to top: 0 — the header now sticks to the top of
+     the wrap as the user scrolls vertically through the page, which is
+     the best we can do while keeping all columns reachable. */
+  .table-wrap { overflow-x: auto; }
+  table.results th { top: 0; }
+}
+
+/* Phone: collapse the topbar actions into a kebab popover, drop a few
+   more columns, and convert the settings dialog to a bottomsheet. */
+@media (max-width: 540px) {
+  .topbar { gap: 8px; padding: 0 8px; position: sticky; }
+  .iconbtn.menu-toggle { display: inline-flex; }
+  /* The actions become a popover anchored to the top-right of the viewport
+     under the topbar. They are visible only when .topbar.menu-open is set. */
+  .topbar-actions {
+    position: absolute;
+    top: 100%;
+    right: 8px;
+    margin-top: 4px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    z-index: 40;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity .15s ease, transform .15s ease, visibility .15s;
+  }
+  .topbar.menu-open .topbar-actions {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /* Inside the kebab popover, every action — language buttons included —
+     becomes the same shape: full-width row, left-aligned label, soft hover
+     background, accent-soft highlight when active. This makes the popover
+     feel like a coherent menu rather than a row of mismatched controls. */
+  .topbar-actions { min-width: 220px; }
+  .topbar-actions .lang-picker {
+    flex-direction: column;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    gap: 4px;
+    width: 100%;
+  }
+  .topbar-actions .lang-picker .lang {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 14px;
+    text-align: left;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--fg-soft);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .topbar-actions .lang-picker .lang:hover {
+    background: var(--bg-soft);
+    border-color: var(--border-soft);
+    color: var(--fg);
+  }
+  .topbar-actions .lang-picker .lang.on {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-color: transparent;
+  }
+  .topbar-actions .iconbtn {
+    width: 100%;
+    height: auto;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    gap: 12px;
+    background: transparent;
+    border-color: transparent;
+  }
+  .topbar-actions .iconbtn:hover {
+    background: var(--bg-soft);
+    border-color: var(--border-soft);
+    color: var(--fg);
+  }
+  .topbar-actions .iconbtn-label {
+    display: inline;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fg);
+  }
+
+  /* Phone: keep ALL columns. Compact paddings + horizontal scroll inside
+     the table-wrap (already enabled in the 720 breakpoint above) make the
+     full result table reachable on a 360 px screen. The header for the
+     rank-in-category column also switches to its short label here, which
+     is a much bigger width win than the cell padding. */
+  .col-full { display: none; }
+  .col-short { display: inline; }
+  table.results th[data-key="rank"],
+  table.results td[data-key="rank"],
+  table.results th[data-key="rank_category"],
+  table.results td[data-key="rank_category"] {
+    padding: 8px 4px;
+    text-align: center;
+  }
+  table.results td.rank { font-size: 13px; }
+  table.results th, table.results td { padding: 8px 8px; font-size: 13px; }
+  .splits-col { width: 36px; padding: 4px; }
+  .row-toggle { width: 26px; height: 26px; }
+  .filters { gap: 8px; }
+
+  /* Dialog as a bottomsheet: full-width, anchored to bottom of viewport,
+     with rounded top corners only. */
+  dialog {
+    margin: auto auto 0 auto;
+    width: 100%;
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.25);
+    animation: bottomsheet-in .22s ease-out;
+  }
+  @keyframes bottomsheet-in {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .settings { padding: 18px 18px 22px; }
+  .dlg-actions { flex-wrap: wrap; }
+  .dlg-actions .primary, .dlg-actions .ghost { flex: 1; }
   /* Hide secondary columns to keep the table within viewport without
      introducing a scrolling ancestor (which would break sticky headers). */
   table.results th[data-key="club"], table.results td.club-cell { display: none; }
-}
-@media (max-width: 480px) {
-  .filters { gap: 8px; }
-  .filters .count { width: 100%; text-align: right; }
-  table.results th[data-key="bib"], table.results td.bib-cell { display: none; }
 }
