@@ -5,8 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RaceNext Results</title>
   <meta name="description" content="Перегляд результатів забігів RaceNext у зручному форматі">
-  <!-- Inline SVG favicon: a single orange "R" letter mark on transparent background. -->
-  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23F25500'/><text x='50%25' y='53%25' dominant-baseline='middle' text-anchor='middle' font-family='-apple-system,Helvetica,Arial,sans-serif' font-weight='800' font-size='40' fill='white'>R</text></svg>">
+
+  <!-- Inline SVG favicon: orange rounded square with a white "R". The same
+       wordmark, with PWA-specific tweaks (safe zone, no rounding for
+       maskable), is also declared in manifest.webmanifest. -->
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23F25500'/><text x='50%25' y='53%25' dominant-baseline='middle' text-anchor='middle' font-family='-apple-system,Helvetica,Arial,sans-serif' font-weight='800' font-size='40' fill='white'>R</text></svg>">
+
+  <!-- PWA: web app manifest + theme color for the address bar / task switcher. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#F25500">
+
+  <!-- iOS / Apple touch support. iOS uses apple-touch-icon (full-bleed
+       since iOS applies its own rounded mask) and the apple-mobile-* meta
+       tags for "Add to Home Screen" → standalone-mode rendering. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="RaceNext Results">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>

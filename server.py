@@ -40,6 +40,14 @@ USER_AGENT = "racenext-results-local/1.0 (+server.py)"
 class Handler(http.server.SimpleHTTPRequestHandler):
     """Serves static files from ROOT and proxies /api/* to API_BASE."""
 
+    # The default extension map does not know about .webmanifest, which the
+    # PWA manifest is served as. Browsers require application/manifest+json
+    # (or at least application/json) for it to be picked up.
+    extensions_map = {
+        **http.server.SimpleHTTPRequestHandler.extensions_map,
+        ".webmanifest": "application/manifest+json",
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 

@@ -1459,6 +1459,18 @@ window.addEventListener("DOMContentLoaded", () => {
   route();
 });
 
+// PWA: register the service worker so the site is installable on mobile
+// and desktop, and so the static shell stays available offline. The
+// service worker is intentionally pass-through for API requests, so live
+// data is never cached.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((err) => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
+
 // Toggle a class on the table wrapper when its sticky <th> rows have crossed
 // the topbar (so CSS can flatten the header's rounded corners). A scroll
 // listener is cheap; checkStickyState is throttled with rAF.

@@ -61,6 +61,21 @@ No build step, no `npm install`, no configuration.
 - **Export** the current view to a CSV file (compatible with Excel and
   Google Sheets).
 
+## Install as an app
+
+When you open the deployed site (or the local server) in a modern browser,
+you can add it to your device's home screen / dock just like a real app:
+
+- **Chrome / Edge (desktop & Android)**: there's an "Install" button in the
+  address bar, or via the browser menu → "Install app".
+- **iOS Safari**: Share button → "Add to Home Screen".
+
+Once installed, the site opens in its own standalone window without
+browser chrome, lands in your app drawer (Android) or dock (macOS) like
+a native app, and keeps working when the network is flaky (the
+interface still loads from cache; live race data simply waits for the
+next time you're online).
+
 ## Settings
 
 Click the gear icon in the top-right to:
