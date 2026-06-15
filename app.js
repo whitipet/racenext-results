@@ -20,9 +20,10 @@ const API = "https://org-api.racenext.app";
 // GitHub Pages (or anywhere without a same-origin proxy) and the API itself
 // does not advertise CORS. Pure pass-through; no API keys.
 const PUBLIC_PROXIES = [
-  { id: "allorigins", make: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
-  { id: "codetabs",   make: u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
-  { id: "thingproxy", make: u => `https://thingproxy.freeboard.io/fetch/${u}` },
+  { id: "corsproxy_io", make: u => `https://corsproxy.io/?url=${encodeURIComponent(u)}` },
+  { id: "cors_lol",     make: u => `https://api.cors.lol/?url=${encodeURIComponent(u)}` },
+  { id: "allorigins",   make: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+  { id: "codetabs",     make: u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
 ];
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -60,7 +61,7 @@ const UI = {
     errorEventFail: id => `Не вдалося завантажити івент #${id}.`,
     errorResultsFail: id => `Не вдалося завантажити результати дистанції #${id}.`,
     proxyAllFailed: "Схоже, усі публічні CORS-проксі недоступні. Відкрий ⚙︎ і додай свій (інструкція у README.md), або запусти локально через python3 server.py.",
-    corsHintLocal: "Якщо відкрив index.html напряму через file:// — спробуй запустити python3 server.py у папці web/.",
+    corsHintLocal: "Якщо відкрив index.html напряму через file:// — спробуй запустити python3 server.py у цій папці проєкту.",
     save: "Зберегти", clear: "Скинути",
     settingsTitle: "Налаштування", customProxy: "Свій CORS-проксі",
     customProxyHint: "Залиш порожнім — сайт спочатку спробує локальний server.py, потім ланцюжок безкоштовних публічних проксі. Можна вставити свій (наприклад, Cloudflare Worker — гайд у README).",
@@ -112,7 +113,7 @@ const UI = {
     errorEventFail: id => `Failed to load event #${id}.`,
     errorResultsFail: id => `Failed to load results for race #${id}.`,
     proxyAllFailed: "Looks like all public CORS proxies are down. Open ⚙︎ and add your own (see README.md), or run python3 server.py locally.",
-    corsHintLocal: "If you opened index.html directly via file:// — try running python3 server.py from the web/ folder.",
+    corsHintLocal: "If you opened index.html directly via file:// — try running python3 server.py from this project folder.",
     save: "Save", clear: "Reset",
     settingsTitle: "Settings", customProxy: "Custom CORS proxy",
     customProxyHint: "Leave empty — the site will first try local server.py, then a chain of free public proxies. Or paste your own (e.g. Cloudflare Worker — see README).",
@@ -239,23 +240,37 @@ function isLocalHost() {
 
 // ---------- API transport ----------
 
-async function tryFetchJson(url, headers) {
-  const r = await fetch(url, { headers, cache: "no-store" });
-  if (!r.ok) {
-    const text = await r.text().catch(() => "");
-    const e = new Error(`HTTP ${r.status} ${r.statusText}`);
-    e.status = r.status;
-    e.body = text.slice(0, 1500);
-    throw e;
-  }
-  // Some proxies set text/html for JSON responses — parse manually.
-  const text = await r.text();
+// Session-level failed proxies cache to prevent retrying dead ones in the same session
+if (!window.rnFailedProxies) {
+  window.rnFailedProxies = new Set();
+}
+
+async function tryFetchJson(url, headers, timeoutMs = 4000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  
   try {
-    return JSON.parse(text);
-  } catch {
-    const e = new Error("Invalid JSON in response");
-    e.body = text.slice(0, 1500);
-    throw e;
+    const r = await fetch(url, { headers, cache: "no-store", signal: controller.signal });
+    clearTimeout(id);
+    if (!r.ok) {
+      const text = await r.text().catch(() => "");
+      const e = new Error(`HTTP ${r.status} ${r.statusText}`);
+      e.status = r.status;
+      e.body = text.slice(0, 1500);
+      throw e;
+    }
+    // Some proxies set text/html for JSON responses — parse manually.
+    const text = await r.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      const e = new Error("Invalid JSON in response");
+      e.body = text.slice(0, 1500);
+      throw e;
+    }
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
   }
 }
 
@@ -284,9 +299,25 @@ async function api(path, params) {
     if (settings.proxy) {
       attempts.push({ id: "custom", url: settings.proxy + encodeURIComponent(direct), trusted: true });
     }
+    
     const lastWinner = localStorage.getItem("rn_last_proxy");
-    const sorted = PUBLIC_PROXIES.slice().sort((a, b) =>
-      (b.id === lastWinner ? 1 : 0) - (a.id === lastWinner ? 1 : 0));
+    const failed = window.rnFailedProxies || new Set();
+    
+    // Sort public proxies: failed ones go to bottom, last winner goes to top, rest maintain priority
+    const sorted = PUBLIC_PROXIES.slice().sort((a, b) => {
+      const aFailed = failed.has(a.id);
+      const bFailed = failed.has(b.id);
+      if (aFailed && !bFailed) return 1;
+      if (!aFailed && bFailed) return -1;
+      
+      const aIsWinner = a.id === lastWinner;
+      const bIsWinner = b.id === lastWinner;
+      if (aIsWinner && !bIsWinner) return -1;
+      if (!aIsWinner && bIsWinner) return 1;
+      
+      return 0;
+    });
+    
     for (const p of sorted) {
       attempts.push({ id: p.id, url: p.make(direct), trusted: false });
     }
@@ -295,13 +326,21 @@ async function api(path, params) {
   let last;
   for (const a of attempts) {
     try {
-      const data = await tryFetchJson(a.url, headers);
+      const timeout = a.trusted ? 8000 : 3500;
+      const data = await tryFetchJson(a.url, headers, timeout);
       if (PUBLIC_PROXIES.some(p => p.id === a.id)) {
         localStorage.setItem("rn_last_proxy", a.id);
       }
       return data;
     } catch (e) {
       last = e;
+      if (PUBLIC_PROXIES.some(p => p.id === a.id)) {
+        if (!window.rnFailedProxies) window.rnFailedProxies = new Set();
+        window.rnFailedProxies.add(a.id);
+        if (localStorage.getItem("rn_last_proxy") === a.id) {
+          localStorage.removeItem("rn_last_proxy");
+        }
+      }
       if (a.trusted && e.status) throw e;
     }
   }
